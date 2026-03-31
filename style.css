@@ -556,7 +556,7 @@ input[type="range"]::-webkit-slider-thumb {
     min-width: 0 !important;
     max-width: none;
     height: 44vh;
-    min-height: 52px;     /* exactly the dock-button strip height */
+    min-height: 80px;     /* exactly the dock-button strip height */
     max-height: 78vh;
     border-right: none;
     border-top: 2px solid var(--border);
@@ -570,7 +570,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
   /* Collapsed = shrink to just the dock-button strip */
   .sidebar.collapsed {
-    height: 100px !important;
+    height: 80px !important;
   }
 
   /* Drag-handle pill at the very top of the sheet */
@@ -595,8 +595,6 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: calc(100% - 32px);
-    margin: 4px 16px 4px;
     padding: 6px 0;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -608,6 +606,11 @@ input[type="range"]::-webkit-slider-thumb {
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
     overflow: visible;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    margin: 0;
   }
   .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
 
