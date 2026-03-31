@@ -198,9 +198,9 @@ header {
 .dock-btn {
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 201;
+  left: 0;
+  transform: translateY(-50%);  /* X translation removed — overflow:hidden on .map-container would clip it */
+  z-index: 2000;          /* beats sidebar (10), resize-handle (200), and Leaflet overlays (1000) */
   width: 20px;
   height: 52px;
   background: var(--surface);
@@ -215,6 +215,7 @@ header {
   transition: background 0.2s;
   font-family: var(--font-mono);
   line-height: 1;
+  pointer-events: all;
 }
 .dock-btn:hover { background: var(--panel); border-color: var(--accent); }
 
@@ -424,6 +425,7 @@ input[type="range"]::-webkit-slider-thumb {
   min-width: 0;
   position: relative;
   overflow: hidden;
+  z-index: 20;            /* above sidebar (10) so dock-btn is never covered */
 }
 
 #map {
