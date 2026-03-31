@@ -551,7 +551,7 @@ input[type="range"]::-webkit-slider-thumb {
      positioned dock button is never clipped when collapsed. The inner
      scroll area handles its own overflow instead (see .sidebar-scroll). */
   .sidebar {
-    order: 2;
+    order: 3;
     width: 100% !important;
     min-width: 0 !important;
     max-width: none;
@@ -587,15 +587,21 @@ input[type="range"]::-webkit-slider-thumb {
   /* Mobile dock button — absolutely pinned to top of sidebar so it is
      ALWAYS visible and tappable, even when the sheet is collapsed.
      overflow:visible on .sidebar means this is never clipped. */
-  .mobile-dock-btn {
-    position: absolute;   /* stays in flex flow, always first visible element */
+.mobile-dock-btn {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    order: 2;
     z-index: 50;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 6px 0;
+    width: calc(100% - 32px);
+    margin: 6px 16px;
+    padding: 8px 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -605,13 +611,7 @@ input[type="range"]::-webkit-slider-thumb {
     letter-spacing: 1px;
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
-    overflow: visible;
-    top: 14px;
-    left: 16px;
-    right: 16px;
-    width: auto;
-    margin: 0;
-  }
+}
   .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* Scrollable inner area — sits below the dock button and clips its own content */
