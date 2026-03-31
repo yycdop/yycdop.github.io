@@ -585,7 +585,7 @@ input[type="range"]::-webkit-slider-thumb {
      ALWAYS visible and tappable, even when the sheet is collapsed.
      overflow:visible on .sidebar means this is never clipped. */
   .mobile-dock-btn {
-    position: relative;   /* stays in flex flow, always first visible element */
+    position: absolute;   /* stays in flex flow, always first visible element */
     z-index: 50;
     flex-shrink: 0;
     display: flex;
