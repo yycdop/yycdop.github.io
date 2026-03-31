@@ -1,1 +1,1194 @@
-<h1>Hello World</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calgary GNSS Signal Quality Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #070b10;
+    --surface: #0d1520;
+    --panel: #111d2e;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ff6b35;
+    --text: #c8e0f4;
+    --text-dim: #5a7a9a;
+    --good: #00ff9d;
+    --mid: #ffd700;
+    --bad: #ff4444;
+    --nosig: #3a3a5c;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 100;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 16px; }
+
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    animation: pulse-logo 3s ease-in-out infinite;
+  }
+  @keyframes pulse-logo {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .header-title h1 {
+    font-size: 20px; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--accent);
+    line-height: 1.1;
+  }
+  .header-title p {
+    font-size: 11px; letter-spacing: 2px; color: var(--text-dim);
+    text-transform: uppercase; font-family: var(--font-mono);
+  }
+
+  .header-status {
+    display: flex; gap: 24px; align-items: center;
+  }
+  .status-item {
+    text-align: center;
+  }
+  .status-label {
+    font-size: 10px; color: var(--text-dim); letter-spacing: 2px;
+    text-transform: uppercase; font-family: var(--font-mono);
+  }
+  .status-value {
+    font-size: 15px; font-weight: 600; color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  .live-dot {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--accent2); font-family: var(--font-mono);
+    letter-spacing: 1px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent2);
+    animation: blink 1.5s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.1} }
+
+  /* === LAYOUT === */
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: 1fr;
+    height: calc(100vh - 68px);
+  }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--text-dim);
+    font-family: var(--font-mono);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--accent);
+  }
+
+  /* === METRIC TOGGLE === */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .metric-btn {
+    padding: 12px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .metric-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .metric-btn--blocked.active {
+    background: rgba(255,68,68,0.15) !important;
+    border-color: #ff4444 !important;
+    color: #ff4444 !important;
+    animation: pulse-blocked 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-blocked {
+    0%,100% { box-shadow: 0 0 8px rgba(255,68,68,0.3); }
+    50%      { box-shadow: 0 0 20px rgba(255,68,68,0.7); }
+  }
+  .metric-btn.active {
+    background: rgba(0, 212, 255, 0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+  }
+  .metric-btn .btn-label { font-size: 15px; font-weight: 700; display: block; }
+  .metric-btn .btn-sub { font-size: 9px; color: inherit; letter-spacing: 1px; opacity: 0.7; }
+
+  /* === TIME SLIDER === */
+  .time-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .time-label {
+    font-size: 28px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 400;
+    letter-spacing: 2px;
+  }
+  .time-date {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    text-align: right;
+  }
+
+  .slider-container { position: relative; padding: 6px 0; }
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,212,255,0.5);
+  }
+
+  .time-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px;
+    margin-top: 12px;
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .play-btn:hover { border-color: var(--accent); background: rgba(0,212,255,0.14); }
+  .play-btn.playing { color: var(--accent2); border-color: var(--accent2); }
+
+  /* === COLOR LEGEND === */
+  .legend-bar {
+    height: 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+    background: linear-gradient(to right,
+      #00ff9d 0%,
+      #7eff00 16%,
+      #ffd700 33%,
+      #ff9500 50%,
+      #ff4444 66%,
+      #cc0000 83%,
+      #880000 100%
+    );
+  }
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+  .legend-no-sig {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .legend-no-sig-swatch {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    background: var(--nosig);
+    border: 1px solid #555;
+  }
+
+  /* === STATS === */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .stat-name {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    margin-bottom: 4px;
+  }
+  .stat-val {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+  .stat-val.good { color: var(--good); }
+  .stat-val.mid { color: var(--mid); }
+  .stat-val.bad { color: var(--bad); }
+
+  /* === HOVER INFO === */
+  .hover-info {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .point-detail {
+    padding: 18px 20px;
+    flex: 1;
+  }
+  .point-empty {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    line-height: 1.8;
+    margin-top: 4px;
+  }
+  .point-vals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pv-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .pv-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 1px; }
+  .pv-value { font-size: 16px; font-weight: 700; font-family: var(--font-mono); color: var(--accent); margin-top: 2px; }
+  .pv-coords {
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  /* === MAP === */
+  .map-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+    background: #0a0f1a;
+  }
+
+  /* Leaflet dark override */
+  .leaflet-tile-pane { filter: brightness(0.45) saturate(0.4) hue-rotate(190deg); }
+  .leaflet-control-attribution { display: none; }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--accent) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* === MAP OVERLAY === */
+  .map-overlay-top {
+    position: absolute;
+    top: 16px; left: 16px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .overlay-tag {
+    background: rgba(7, 11, 16, 0.85);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    backdrop-filter: blur(8px);
+  }
+  .overlay-tag span { color: var(--accent); }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,212,255,0.3), transparent);
+    pointer-events: none;
+    z-index: 500;
+    animation: scan 6s linear infinite;
+  }
+  @keyframes scan {
+    from { top: 0%; }
+    to { top: 100%; }
+  }
+
+  /* Loading overlay */
+  #loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    transition: opacity 0.5s;
+  }
+  #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .loading-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .loading-bar-wrap {
+    width: 280px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .loading-bar {
+    height: 100%;
+    background: linear-gradient(to right, var(--accent), var(--accent2));
+    animation: load-progress 1.8s ease-in-out forwards;
+    border-radius: 2px;
+  }
+  @keyframes load-progress {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+  .loading-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    white-space: pre-line;
+    text-align: center;
+    max-width: 520px;
+    line-height: 1.9;
+  }
+
+  /* Leaflet canvas layer */
+  .leaflet-overlay-pane canvas { pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-mark">⬡</div>
+    <div class="header-title">
+      <h1>GNSS Signal Monitor</h1>
+      <p>Calgary Downtown · 3D Building Model · Line-of-Sight Analysis</p>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-item">
+      <div class="status-label">Coverage</div>
+      <div class="status-value">6,400 pts</div>
+    </div>
+    <div class="status-item">
+      <div class="status-label">Resolution</div>
+      <div class="status-value">1 m</div>
+    </div>
+    <div class="status-item">
+      <div class="status-label">Epochs</div>
+      <div class="status-value">12</div>
+    </div>
+    <div class="live-dot">
+      <div class="dot"></div>
+      LIVE DEMO
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <!-- Metric selector -->
+    <div class="sidebar-section">
+      <div class="section-title">Display Metric</div>
+      <div class="metric-grid">
+        <button class="metric-btn" data-metric="pdop" onclick="setMetric('pdop')">
+          <span class="btn-label">PDOP</span>
+          <span class="btn-sub">Position DOP</span>
+        </button>
+        <button class="metric-btn" data-metric="hdop" onclick="setMetric('hdop')">
+          <span class="btn-label">HDOP</span>
+          <span class="btn-sub">Horizontal DOP</span>
+        </button>
+        <button class="metric-btn" data-metric="vdop" onclick="setMetric('vdop')">
+          <span class="btn-label">VDOP</span>
+          <span class="btn-sub">Vertical DOP</span>
+        </button>
+        <button class="metric-btn" data-metric="sats" onclick="setMetric('sats')">
+          <span class="btn-label">SATS</span>
+          <span class="btn-sub">Visible Sats</span>
+        </button>
+        <button class="metric-btn metric-btn--blocked" data-metric="blocked"
+                onclick="setMetric('blocked')"
+                style="grid-column:span 2;border-color:#ff4444;color:#ff4444;">
+          <span class="btn-label">⛔ BLOCKED</span>
+          <span class="btn-sub">No Signal Locations</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Time slider -->
+    <div class="sidebar-section">
+      <div class="section-title">Time of Day</div>
+      <div class="time-display">
+        <div class="time-label" id="time-label">00:00</div>
+        <div class="time-date">
+          <div>2023-04-17</div>
+          <div id="epoch-label" style="color:var(--accent);font-size:13px;">Epoch 1/12</div>
+        </div>
+      </div>
+      <div class="slider-container">
+        <input type="range" id="time-slider" min="0" max="11" value="0" step="1" oninput="setEpoch(this.value)">
+        <div class="time-ticks">
+          <span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span>
+        </div>
+      </div>
+      <button class="play-btn" id="play-btn" onclick="togglePlay()">
+        <span id="play-icon">▶</span>
+        <span id="play-text">ANIMATE DAY</span>
+      </button>
+    </div>
+
+    <!-- Legend -->
+    <div class="sidebar-section">
+      <div class="section-title">Color Scale</div>
+      <div id="legend-range-label" style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-bottom:6px;">
+        PDOP · Lower = Better
+      </div>
+      <div class="legend-bar" id="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-min">0.5</span>
+        <span id="legend-mid">5.0</span>
+        <span id="legend-max">9.9</span>
+      </div>
+      <div class="legend-no-sig">
+        <div class="legend-no-sig-swatch"></div>
+        <span>No signal / blocked</span>
+      </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="sidebar-section">
+      <div class="section-title">Epoch Statistics</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-name">Mean</div>
+          <div class="stat-val" id="stat-mean">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-name">Median</div>
+          <div class="stat-val" id="stat-median">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-name">Min</div>
+          <div class="stat-val good" id="stat-min">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-name">Max</div>
+          <div class="stat-val bad" id="stat-max">—</div>
+        </div>
+        <div class="stat-card" style="grid-column:span 2">
+          <div class="stat-name">No Signal Points</div>
+          <div class="stat-val" id="stat-nosig">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hover detail -->
+    <div class="hover-info">
+      <div class="point-detail">
+        <div class="section-title">Point Detail</div>
+        <div id="point-info-empty" class="point-empty">
+          Hover over the map<br>to inspect a location
+        </div>
+        <div id="point-info-data" style="display:none">
+          <div class="point-vals">
+            <div class="pv-item">
+              <div class="pv-label">PDOP</div>
+              <div class="pv-value" id="pv-pdop">—</div>
+            </div>
+            <div class="pv-item">
+              <div class="pv-label">HDOP</div>
+              <div class="pv-value" id="pv-hdop">—</div>
+            </div>
+            <div class="pv-item">
+              <div class="pv-label">VDOP</div>
+              <div class="pv-value" id="pv-vdop">—</div>
+            </div>
+            <div class="pv-item">
+              <div class="pv-label">Satellites</div>
+              <div class="pv-value" id="pv-sats">—</div>
+            </div>
+          </div>
+          <div class="pv-coords" id="pv-coords"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-container">
+    <div id="loading-overlay">
+      <div class="loading-title">Initializing GNSS Monitor</div>
+      <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+      <div class="loading-sub">Decompressing satellite data...</div>
+    </div>
+
+    <div id="map"></div>
+    <div class="scan-line"></div>
+
+    <div class="map-overlay-top">
+      <div class="overlay-tag">Calgary Downtown · <span>51.050°N, 114.070°W</span></div>
+      <div class="overlay-tag" id="overlay-metric">Metric: <span>PDOP</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// DATA LOADING — reads gnss_monitor_live.data (binary gzip, GNS2 format)
+// =====================================================================
+async function loadData() {
+  const subEl   = document.querySelector('.loading-sub');
+  const titleEl = document.querySelector('.loading-title');
+  const status  = t => { subEl.textContent = t; };
+
+  // Step 1: download with progress
+  status('Downloading data file...');
+  const response = await fetch('gnss_monitor_live.data');
+  if (!response.ok) throw new Error(
+    'HTTP ' + response.status + ' fetching gnss_monitor_live.data — ' +
+    'make sure gnss_monitor_live.data is in the same directory as this HTML file.');
+
+  const contentLength = response.headers.get('Content-Length');
+  const dlTotal = contentLength ? parseInt(contentLength, 10) : 0;
+  const dlReader = response.body.getReader();
+  const dlChunks = [];
+  let dlReceived = 0;
+  while (true) {
+    const { done, value } = await dlReader.read();
+    if (done) break;
+    dlChunks.push(value);
+    dlReceived += value.length;
+    if (dlTotal > 0) {
+      const pct = Math.round(dlReceived / dlTotal * 100);
+      status('Downloading... ' + pct + '% (' +
+        (dlReceived / 1048576).toFixed(1) + ' MB)');
+    } else {
+      status('Downloading... ' +
+        (dlReceived / 1048576).toFixed(1) + ' MB received');
+    }
+  }
+
+  // Reassemble compressed bytes
+  const compSize = dlChunks.reduce((s, c) => s + c.length, 0);
+  const compressed = new Uint8Array(compSize);
+  let pos = 0;
+  for (const c of dlChunks) { compressed.set(c, pos); pos += c.length; }
+
+  // Step 2: decompress
+  status('Decompressing... (~10 seconds)');
+  await new Promise(r => setTimeout(r, 30));
+  const ds = new DecompressionStream('gzip');
+  const decompResp = new Response(
+    new Blob([compressed]).stream().pipeThrough(ds)
+  );
+  const rawBuf = await decompResp.arrayBuffer();
+  const raw = new Uint8Array(rawBuf);
+
+  // Step 3: parse binary header — v1=64 bytes (GNSS), v2=68 bytes (GNS2)
+  status('Parsing header...');
+  await new Promise(r => setTimeout(r, 30));
+  const view    = new DataView(rawBuf);
+  const magic   = String.fromCharCode(raw[0], raw[1], raw[2], raw[3]);
+  if (magic !== 'GNSS' && magic !== 'GNS2') throw new Error(
+    'Bad magic bytes — .data file may be from an older run. ' +
+    'Re-run convert_csv_to_website_data.py to regenerate both files.');
+  const version    = view.getUint32(4, true);
+  const headerSize = (version >= 2) ? 68 : 64;
+  const grid_h   = view.getUint32(8,  true);
+  const grid_w   = view.getUint32(12, true);
+  const lat_min  = view.getFloat64(16, true);
+  const lat_max  = view.getFloat64(24, true);
+  const lon_min  = view.getFloat64(32, true);
+  const lon_max  = view.getFloat64(40, true);
+  const n_epochs = view.getUint32(48, true);
+  const hours    = Array.from(raw.slice(52, 52 + n_epochs));
+  const hasBuildings = (version >= 2) ? view.getUint32(64, true) : 0;
+
+  // Step 4: slice epoch data (zero-copy subarray views)
+  status('Building map...');
+  await new Promise(r => setTimeout(r, 30));
+  const cellsPerEpoch = grid_h * grid_w;
+  const epochBytes    = cellsPerEpoch * 4;
+  const dataStart     = headerSize;
+  const epochs = [];
+  for (let e = 0; e < n_epochs; e++) {
+    const offset = dataStart + e * epochBytes;
+    epochs.push(raw.subarray(offset, offset + epochBytes));
+  }
+
+  // Step 5: building mask (v2 only) — 1 byte per cell, appended after epochs
+  let buildingMask = null;
+  if (hasBuildings) {
+    const maskStart = dataStart + n_epochs * epochBytes;
+    buildingMask    = raw.subarray(maskStart, maskStart + cellsPerEpoch);
+    const nMasked   = buildingMask.reduce((s, v) => s + v, 0);
+    status('Building mask: ' + nMasked.toLocaleString() + ' cells');
+  }
+
+  return {
+    meta: { grid_h, grid_w, lat_min, lat_max, lon_min, lon_max, hours,
+            hasBuildings: !!hasBuildings },
+    epochs,
+    buildingMask
+  };
+}
+
+// =====================================================================
+// APP STATE
+// =====================================================================
+let gpsData = null;
+let currentEpoch = 0;
+let currentMetric = 'pdop';
+let playInterval = null;
+let canvasLayer = null;
+let map = null;
+let showBuildings = true;
+
+const HOURS = [0,2,4,6,8,10,12,14,16,18,20,22];
+const METRIC_IDX = { vdop: 0, hdop: 1, pdop: 2, sats: 3 };
+const METRIC_LABELS = {
+  pdop: 'PDOP · Lower = Better',
+  hdop: 'HDOP · Lower = Better',
+  vdop: 'VDOP · Lower = Better',
+  sats: 'Satellites · Higher = Better'
+};
+
+// =====================================================================
+// COLOR LOOKUP TABLES  (pre-built at startup for fast render)
+// =====================================================================
+const DOP_LUT  = new Uint8Array(256 * 3);
+const SATS_LUT = new Uint8Array(21  * 3);
+
+(function buildLUTs() {
+  const stops = [
+    [0.00, [0,   255, 157]],
+    [0.15, [126, 255, 0  ]],
+    [0.33, [255, 215, 0  ]],
+    [0.50, [255, 149, 0  ]],
+    [0.67, [255, 68,  68 ]],
+    [0.83, [204, 0,   0  ]],
+    [1.00, [136, 0,   0  ]]
+  ];
+  function colorFromNorm(t) {
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) {
+        const lo = stops[i-1], hi = stops[i];
+        const f  = (t - lo[0]) / (hi[0] - lo[0]);
+        return lo[1].map((c, j) => Math.round(c + f * (hi[1][j] - c)));
+      }
+    }
+    return stops[stops.length-1][1];
+  }
+  for (let v = 0; v < 100; v++) {
+    const norm = Math.min(Math.max((v/10.0 - 0.5) / 9.0, 0), 1);
+    const rgb  = colorFromNorm(norm);
+    DOP_LUT[v*3] = rgb[0]; DOP_LUT[v*3+1] = rgb[1]; DOP_LUT[v*3+2] = rgb[2];
+  }
+  for (let v = 100; v < 255; v++) {
+    DOP_LUT[v*3] = 136; DOP_LUT[v*3+1] = 0; DOP_LUT[v*3+2] = 0;
+  }
+  for (let v = 1; v <= 20; v++) {
+    const rgb = colorFromNorm(1 - v/20.0);
+    SATS_LUT[v*3] = rgb[0]; SATS_LUT[v*3+1] = rgb[1]; SATS_LUT[v*3+2] = rgb[2];
+  }
+})();
+
+function dopColor(val, isSats) {
+  if (val === 255 || (val === 0 && !isSats)) return null;
+  const base = val * 3;
+  const lut  = isSats ? SATS_LUT : DOP_LUT;
+  return [lut[base], lut[base+1], lut[base+2]];
+}
+
+// =====================================================================
+// CANVAS LAYER
+// =====================================================================
+// Persistent offscreen canvas + pixel buffer — created once, reused every frame
+let _offscreen = null;
+let _offCtx    = null;
+let _imgData   = null;
+let _pixels32  = null;
+
+// Building overlay
+let _bldOffscreen = null;
+let _bldRendered  = false;
+const BUILDING_ARGB = (160 << 24) | (153 << 16) | (153 << 8) | 0;  // dark slate blue #483D8B
+
+// 32-bit ARGB colour tables (little-endian 0xAABBGGRR) — one write per pixel
+const DOP_ARGB   = new Uint32Array(256);
+const SATS_ARGB  = new Uint32Array(21);
+const NO_SIG_ARGB   = (209 << 24) | (92 << 16) | (58 << 8) | 58;
+const BLOCKED_ARGB  = (230 << 24) | (50 << 16) | (50 << 8) | 255;
+const CLEAR_ARGB    = 0x00000000;
+
+(function buildARGB() {
+  for (let v = 0; v < 256; v++) {
+    const b = v * 3;
+    DOP_ARGB[v] = (209 << 24) | (DOP_LUT[b+2] << 16) | (DOP_LUT[b+1] << 8) | DOP_LUT[b];
+  }
+  DOP_ARGB[255] = NO_SIG_ARGB;
+  for (let v = 0; v < 21; v++) {
+    const b = v * 3;
+    SATS_ARGB[v] = (209 << 24) | (SATS_LUT[b+2] << 16) | (SATS_LUT[b+1] << 8) | SATS_LUT[b];
+  }
+})();
+
+function renderEpoch() {
+  if (!gpsData || !canvasLayer) return;
+
+  const meta      = gpsData.meta;
+  const epoch     = gpsData.epochs[currentEpoch];
+  const isBlocked = currentMetric === 'blocked';
+  const isSats    = currentMetric === 'sats';
+  const metricIdx = isBlocked ? 0 : METRIC_IDX[currentMetric];
+  const argbLut   = isSats ? SATS_ARGB : DOP_ARGB;
+
+  const canvas = canvasLayer._canvas;
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const GW  = meta.grid_w;
+  const GH  = meta.grid_h;
+  const N   = GW * GH;
+
+  if (!_offscreen || _offscreen.width !== GW || _offscreen.height !== GH) {
+    _offscreen = new OffscreenCanvas(GW, GH);
+    _offCtx    = _offscreen.getContext('2d');
+    _imgData   = _offCtx.createImageData(GW, GH);
+    _pixels32  = new Uint32Array(_imgData.data.buffer);
+  }
+
+  if (isBlocked) {
+    for (let idx = 0; idx < N; idx++)
+      _pixels32[idx] = (epoch[idx * 4] === 255) ? BLOCKED_ARGB : CLEAR_ARGB;
+  } else {
+    for (let idx = 0; idx < N; idx++) {
+      const val = epoch[idx * 4 + metricIdx];
+      _pixels32[idx] = (val === 255 || (val === 0 && !isSats)) ? NO_SIG_ARGB : argbLut[val];
+    }
+  }
+
+  _offCtx.putImageData(_imgData, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(_offscreen, 0, 0, canvas.width, canvas.height);
+
+  // Draw semi-transparent grey building footprint overlay on top
+  if (gpsData.buildingMask && showBuildings) {
+    if (!_bldRendered || !_bldOffscreen ||
+        _bldOffscreen.width !== GW || _bldOffscreen.height !== GH) {
+      _bldOffscreen = new OffscreenCanvas(GW, GH);
+      const bCtx  = _bldOffscreen.getContext('2d');
+      const bImg  = bCtx.createImageData(GW, GH);
+      const bPx32 = new Uint32Array(bImg.data.buffer);
+      const mask  = gpsData.buildingMask;
+      for (let i = 0; i < N; i++)
+        bPx32[i] = mask[i] ? BUILDING_ARGB : 0x00000000;
+      bCtx.putImageData(bImg, 0, 0);
+      _bldRendered = true;
+    }
+    ctx.drawImage(_bldOffscreen, 0, 0, canvas.width, canvas.height);
+  }
+}
+
+// Custom Leaflet canvas layer
+function createCanvasLayer() {
+  const Layer = L.Layer.extend({
+    _canvas: null,
+    onAdd(map) {
+      this._map = map;
+      const pane = map.getPanes().overlayPane;
+      this._canvas = L.DomUtil.create('canvas', '', pane);
+      this._canvas.style.position = 'absolute';
+      this._canvas.style.zIndex = 200;
+      this._canvas.style.imageRendering = 'pixelated';
+      map.on('moveend zoomend resize', this._update, this);
+      this._update();
+    },
+    onRemove(map) {
+      this._canvas.remove();
+      map.off('moveend zoomend resize', this._update, this);
+    },
+    _update() {
+      const map = this._map;
+      const meta = gpsData ? gpsData.meta : null;
+      if (!meta) return;
+
+      const topLeft = map.latLngToLayerPoint([meta.lat_max, meta.lon_min]);
+      const bottomRight = map.latLngToLayerPoint([meta.lat_min, meta.lon_max]);
+      const w = bottomRight.x - topLeft.x;
+      const h = bottomRight.y - topLeft.y;
+
+      this._canvas.style.left = topLeft.x + 'px';
+      this._canvas.style.top = topLeft.y + 'px';
+      this._canvas.style.width = w + 'px';
+      this._canvas.style.height = h + 'px';
+      this._canvas.width = meta.grid_w;
+      this._canvas.height = meta.grid_h;
+
+      renderEpoch();
+    }
+  });
+  return new Layer();
+}
+
+// =====================================================================
+// STATS
+// =====================================================================
+function updateStats() {
+  if (!gpsData) return;
+  const epoch     = gpsData.epochs[currentEpoch];
+  const isBlocked = currentMetric === 'blocked';
+  const isSats    = currentMetric === 'sats';
+  const metricIdx = isBlocked ? 0 : METRIC_IDX[currentMetric];
+  const total     = epoch.length / 4;
+
+  if (isBlocked) {
+    let blocked = 0;
+    for (let i = 0; i < total; i++) { if (epoch[i * 4] === 255) blocked++; }
+    const pct = (blocked / total * 100).toFixed(1);
+    document.getElementById('stat-mean').textContent   = pct + '%';
+    document.getElementById('stat-median').textContent = '—';
+    document.getElementById('stat-min').textContent    = '0%';
+    document.getElementById('stat-max').textContent    = '100%';
+    document.getElementById('stat-nosig').textContent  = blocked + ' / ' + total;
+    document.getElementById('stat-mean').className     = 'stat-val' +
+      (parseFloat(pct) > 50 ? ' bad' : parseFloat(pct) > 20 ? ' mid' : ' good');
+    return;
+  }
+
+  let sum = 0, count = 0, nosig = 0, vmin = Infinity, vmax = -Infinity;
+  const hist = new Uint32Array(101);
+
+  for (let i = 0; i < total; i++) {
+    const raw = epoch[i * 4 + metricIdx];
+    if (isSats ? (raw === 0) : (raw === 255)) { nosig++; continue; }
+    const v = isSats ? raw : raw / 10;
+    sum += v; count++;
+    if (v < vmin) vmin = v;
+    if (v > vmax) vmax = v;
+    hist[Math.min(100, isSats ? Math.round(v * 5) : Math.round(v * 10))]++;
+  }
+
+  let median = '—';
+  if (count > 0) {
+    const half = count / 2; let cum = 0;
+    for (let b = 0; b <= 100; b++) {
+      cum += hist[b];
+      if (cum >= half) { median = isSats ? (b/5).toFixed(1) : (b/10).toFixed(2); break; }
+    }
+  }
+  const fmt  = isSats ? 1 : 2;
+  const mean = count > 0 ? (sum / count).toFixed(fmt) : '—';
+  const min  = isFinite(vmin) ? vmin.toFixed(isSats ? 0 : 2) : '—';
+  const max  = isFinite(vmax) ? vmax.toFixed(isSats ? 0 : 2) : '—';
+
+  document.getElementById('stat-mean').textContent   = mean;
+  document.getElementById('stat-median').textContent = median;
+  document.getElementById('stat-min').textContent    = min;
+  document.getElementById('stat-max').textContent    = max;
+  document.getElementById('stat-nosig').textContent  = nosig + ' / ' + total;
+  if (!isSats) {
+    const meanEl = document.getElementById('stat-mean');
+    meanEl.className = 'stat-val' +
+      (parseFloat(mean) < 2 ? ' good' : parseFloat(mean) < 4 ? ' mid' : ' bad');
+  }
+}
+
+// =====================================================================
+// UI CONTROLS
+// =====================================================================
+function setMetric(m) {
+  currentMetric = m;
+  document.querySelectorAll('.metric-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.metric === m);
+  });
+
+  const isSats    = m === 'sats';
+  const isBlocked = m === 'blocked';
+  document.getElementById('legend-range-label').textContent = METRIC_LABELS[m];
+  document.getElementById('overlay-metric').innerHTML = `Metric: <span>${m.toUpperCase()}</span>`;
+
+  if (isBlocked) {
+    document.getElementById('legend-bar').style.background =
+      'linear-gradient(to right, #0a0f1a 0%, #3a3a5c 40%, #ff4444 100%)';
+    document.getElementById('legend-min').textContent = 'Signal';
+    document.getElementById('legend-mid').textContent = '';
+    document.getElementById('legend-max').textContent = 'Blocked';
+  } else if (isSats) {
+    document.getElementById('legend-bar').style.background = 'linear-gradient(to right, #880000, #cc0000, #ff4444, #ff9500, #ffd700, #7eff00, #00ff9d)';
+    document.getElementById('legend-min').textContent = '0';
+    document.getElementById('legend-mid').textContent = '10';
+    document.getElementById('legend-max').textContent = '20';
+  } else {
+    document.getElementById('legend-bar').style.background = 'linear-gradient(to right, #00ff9d 0%, #7eff00 16%, #ffd700 33%, #ff9500 50%, #ff4444 66%, #cc0000 83%, #880000 100%)';
+    document.getElementById('legend-min').textContent = '0.5';
+    document.getElementById('legend-mid').textContent = '5.0';
+    document.getElementById('legend-max').textContent = '9.9';
+  }
+
+  canvasLayer._update();  // calls renderEpoch() internally
+  updateStats();
+}
+
+function setEpoch(idx) {
+  currentEpoch = parseInt(idx);
+  document.getElementById('time-slider').value = idx;
+  const h = HOURS[currentEpoch];
+  document.getElementById('time-label').textContent = String(h).padStart(2,'0') + ':00';
+  document.getElementById('epoch-label').textContent = `Epoch ${currentEpoch+1}/12`;
+  canvasLayer._update();  // calls renderEpoch() internally
+  updateStats();
+}
+
+function toggleBuildings() {
+  showBuildings = !showBuildings;
+  _bldRendered = false;
+  const btn = document.getElementById('bld-toggle-btn');
+  if (btn) {
+    btn.textContent   = showBuildings ? '🏢 Buildings: ON' : '🏢 Buildings: OFF';
+    btn.style.opacity = showBuildings ? '1' : '0.4';
+  }
+  canvasLayer._update();
+}
+
+function togglePlay() {
+  if (playInterval) {
+    clearInterval(playInterval);
+    playInterval = null;
+    document.getElementById('play-btn').classList.remove('playing');
+    document.getElementById('play-icon').textContent = '▶';
+    document.getElementById('play-text').textContent = 'ANIMATE DAY';
+  } else {
+    document.getElementById('play-btn').classList.add('playing');
+    document.getElementById('play-icon').textContent = '■';
+    document.getElementById('play-text').textContent = 'STOP';
+    playInterval = setInterval(() => {
+      setEpoch((currentEpoch + 1) % 12);
+    }, 1200);
+  }
+}
+
+// =====================================================================
+// MAP HOVER
+// =====================================================================
+function setupHover() {
+  const meta = gpsData.meta;
+  map.on('mousemove', (e) => {
+    const { lat, lng } = e.latlng;
+    if (lat < meta.lat_min || lat > meta.lat_max || lng < meta.lon_min || lng > meta.lon_max) {
+      document.getElementById('point-info-empty').style.display = '';
+      document.getElementById('point-info-data').style.display = 'none';
+      return;
+    }
+
+    const j = Math.round((lng - meta.lon_min) / (meta.lon_max - meta.lon_min) * (meta.grid_w - 1));
+    const i = Math.round((meta.lat_max - lat) / (meta.lat_max - meta.lat_min) * (meta.grid_h - 1));
+
+    if (i < 0 || i >= meta.grid_h || j < 0 || j >= meta.grid_w) return;
+
+    const idx = i * meta.grid_w + j;
+    const epoch = gpsData.epochs[currentEpoch];
+
+    const base = idx * 4;
+    const vdop = epoch[base];
+    const hdop = epoch[base + 1];
+    const pdop = epoch[base + 2];
+    const sats = epoch[base + 3];
+
+    const noSig = vdop === 255;
+
+    document.getElementById('point-info-empty').style.display = 'none';
+    document.getElementById('point-info-data').style.display = '';
+
+    document.getElementById('pv-pdop').textContent = noSig ? 'N/A' : (pdop/10).toFixed(2);
+    document.getElementById('pv-hdop').textContent = noSig ? 'N/A' : (hdop/10).toFixed(2);
+    document.getElementById('pv-vdop').textContent = noSig ? 'N/A' : (vdop/10).toFixed(2);
+    document.getElementById('pv-sats').textContent = noSig ? '0' : sats;
+    document.getElementById('pv-coords').innerHTML =
+      `Lat: ${lat.toFixed(6)}°N<br>Lon: ${lng.toFixed(6)}°E` +
+      (noSig ? '<br><span style="color:var(--bad)">● Blocked by building</span>' : '');
+  });
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+async function init() {
+  const subEl = document.querySelector('.loading-sub');
+  const t0 = performance.now();
+  const log = [];
+  function status(msg) {
+    const s = ((performance.now() - t0) / 1000).toFixed(2);
+    const line = '[' + s + 's] ' + msg;
+    log.push(line);
+    subEl.textContent = log.slice(-6).join('\n');
+    console.log(line);
+  }
+
+  status('Initialising map...');
+  map = L.map('map', {
+    center: [51.050, -114.075],
+    zoom: 14,
+    zoomControl: true,
+    attributionControl: false
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(map);
+  status('Map ready');
+
+  try {
+    status('Loading GNSS data...');
+    gpsData = await loadData();
+    status('Data loaded — ' + gpsData.epochs.length + ' epochs, ' +
+      gpsData.meta.grid_w + 'x' + gpsData.meta.grid_h + ' grid');
+  } catch(e) {
+    console.error('Data load failed:', e);
+    document.querySelector('.loading-title').textContent = 'Error Loading Data';
+    subEl.textContent = e && e.message ? e.message : String(e);
+    return;
+  }
+
+  status('Creating canvas overlay...');
+  await new Promise(r => setTimeout(r, 20));
+  canvasLayer = createCanvasLayer();
+  canvasLayer.addTo(map);
+  status('Canvas overlay ready');
+
+  status('Setting metric (PDOP)...');
+  await new Promise(r => setTimeout(r, 20));
+  setMetric('pdop');
+  status('Metric set');
+
+  status('Rendering epoch 0...');
+  await new Promise(r => setTimeout(r, 20));
+  setEpoch(0);
+  status('Epoch rendered');
+
+  status('Setting up hover...');
+  setupHover();
+  status('Done — total ' + ((performance.now() - t0) / 1000).toFixed(2) + 's');
+
+  await new Promise(r => setTimeout(r, 800));
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
