@@ -134,43 +134,70 @@
   }
 
   /* === DESKTOP RESIZE HANDLE === */
+  /* The resize handle is a flex child between sidebar and map.
+     It also hosts the dock button so the button is always at
+     the divider and never obscured by the map canvas. */
   .resize-handle {
-    width: 5px;
+    width: 20px;          /* wide enough to hold dock-btn */
     flex-shrink: 0;
-    background: transparent;
-    cursor: col-resize;
     position: relative;
-    z-index: 20;
+    z-index: 50;          /* above Leaflet (z ~400) via stacking context */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: col-resize;
+    background: transparent;
     transition: background 0.15s;
   }
-  .resize-handle:hover,
-  .resize-handle.dragging { background: var(--accent); opacity: 0.5; }
+  /* thin visible line in the centre */
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%; transform: translateX(-50%);
+    width: 3px;
+    background: transparent;
+    transition: background 0.15s;
+    pointer-events: none;
+  }
+  .resize-handle:hover::before,
+  .resize-handle.dragging::before { background: var(--accent); opacity: 0.5; }
 
-  /* === DESKTOP DOCK BUTTON === */
+  /* === DESKTOP DOCK BUTTON — lives inside resize-handle === */
   .dock-btn {
     position: absolute;
     top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    z-index: 30;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 51;
     width: 20px;
     height: 52px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: none;
-    border-radius: 0 6px 6px 0;
+    border-radius: 6px;
     color: var(--accent);
     font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, left 0.25s ease;
+    transition: background 0.2s;
     font-family: var(--font-mono);
     line-height: 1;
+    pointer-events: all;
   }
   .dock-btn:hover { background: var(--panel); border-color: var(--accent); }
-  /* dock button rides on the right edge of sidebar via JS */
+
+  /* === THEMED SCROLLBAR for sidebar === */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: var(--surface); }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .sidebar::-webkit-scrollbar-thumb:hover { background: var(--accent); opacity: 0.6; }
+  /* Firefox */
+  .sidebar { scrollbar-width: thin; scrollbar-color: var(--border) var(--surface); }
 
   .sidebar-section {
     padding: 18px 20px;
@@ -580,10 +607,19 @@
       transition: height 0.28s ease;
       position: relative;
     }
+    /* When collapsed: keep the header strip (48px) visible,
+       hide everything below it via overflow rather than height:0 */
     .sidebar.collapsed {
       height: 48px !important;
-      min-height: 48px;
       overflow: hidden;
+    }
+    /* Ensure mobile dock button is always the first thing
+       visible at the top — pinned inside the 48px strip */
+    .mobile-dock-btn {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface);   /* opaque so content scrolling behind it is hidden */
     }
 
     /* Drag handle bar at top of mobile panel */
@@ -597,16 +633,15 @@
       flex-shrink: 0;
     }
 
-    /* Mobile dock button */
+    /* Mobile dock button — already styled above with sticky */
     .mobile-dock-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       width: calc(100% - 32px);
-      margin: 6px 16px 0;
-      padding: 5px 0;
-      background: transparent;
+      margin: 6px 16px 4px;
+      padding: 6px 0;
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text-dim);
@@ -667,9 +702,6 @@
 </header>
 
 <div class="app" id="app">
-  <!-- DESKTOP DOCK BUTTON (rides on right edge of sidebar, positioned by JS) -->
-  <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
-
   <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <!-- Mobile: dock button + resize handle (hidden on desktop via CSS) -->
@@ -804,8 +836,10 @@
     </div>
   </div>
 
-  <!-- DESKTOP RESIZE HANDLE -->
-  <div class="resize-handle" id="resize-handle"></div>
+  <!-- DESKTOP RESIZE HANDLE — dock button lives here so it's always at the divider, never covered by map -->
+  <div class="resize-handle" id="resize-handle">
+    <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
+  </div>
 
   <!-- MAP -->
   <div class="map-container">
@@ -1370,20 +1404,17 @@ async function init() {
 // PANEL — DESKTOP RESIZE + DOCK  /  MOBILE RESIZE + DOCK
 // =====================================================================
 (function setupPanel() {
-  const sidebar     = document.getElementById('sidebar');
-  const resizeHandle= document.getElementById('resize-handle');
-  const dockBtn     = document.getElementById('dock-btn');
-  const mobileDock  = document.getElementById('mobile-dock-btn');
-  const mobileResize= document.getElementById('mobile-resize-handle');
-  const app         = document.getElementById('app');
+  const sidebar      = document.getElementById('sidebar');
+  const resizeHandle = document.getElementById('resize-handle');
+  const dockBtn      = document.getElementById('dock-btn');
+  const mobileDock   = document.getElementById('mobile-dock-btn');
+  const mobileResize = document.getElementById('mobile-resize-handle');
 
-  let collapsed = false;
-  let lastWidth = 320;   // desktop: remember width before collapse
+  let collapsed  = false;
+  let lastWidth  = 320;
 
-  // ── Position desktop dock button on the right edge of sidebar ──────
-  function positionDockBtn() {
-    const w = collapsed ? 0 : sidebar.offsetWidth;
-    dockBtn.style.left = w + 'px';
+  // ── Desktop: update arrow label ─────────────────────────────────────
+  function updateArrow() {
     dockBtn.textContent = collapsed ? '▶' : '◀';
   }
 
@@ -1401,7 +1432,7 @@ async function init() {
       sidebar.style.minWidth = '180px';
       sidebar.classList.remove('collapsed');
     }
-    positionDockBtn();
+    updateArrow();
     setTimeout(() => { if (map) map.invalidateSize(); }, 280);
   }
   dockBtn.addEventListener('click', desktopToggle);
@@ -1411,11 +1442,13 @@ async function init() {
   let dragStartX, dragStartW;
 
   resizeHandle.addEventListener('mousedown', e => {
+    // Don't start drag if clicking the dock button itself
+    if (e.target === dockBtn) return;
     dragging    = true;
     dragStartX  = e.clientX;
     dragStartW  = sidebar.offsetWidth;
     resizeHandle.classList.add('dragging');
-    document.body.style.cursor = 'col-resize';
+    document.body.style.cursor    = 'col-resize';
     document.body.style.userSelect = 'none';
     e.preventDefault();
   });
@@ -1429,8 +1462,8 @@ async function init() {
       collapsed = false;
       sidebar.classList.remove('collapsed');
       sidebar.style.minWidth = '180px';
+      updateArrow();
     }
-    positionDockBtn();
     if (map) map.invalidateSize();
   });
 
@@ -1438,13 +1471,15 @@ async function init() {
     if (!dragging) return;
     dragging = false;
     resizeHandle.classList.remove('dragging');
-    document.body.style.cursor = '';
+    document.body.style.cursor    = '';
     document.body.style.userSelect = '';
   });
 
   // ── Mobile: toggle collapse ─────────────────────────────────────────
+  // The mobile dock button is sticky at the top of the sidebar,
+  // so it stays visible even when the panel is collapsed to 48px.
   let mobileCollapsed = false;
-  let lastMobileH = null;   // saved height before collapse
+  let lastMobileH = null;
 
   function mobileToggle() {
     if (!mobileCollapsed) {
@@ -1463,7 +1498,7 @@ async function init() {
   mobileDock.addEventListener('click', mobileToggle);
 
   // ── Mobile: touch-drag top edge to resize ───────────────────────────
-  let touchDragging  = false;
+  let touchDragging = false;
   let touchStartY, touchStartH;
 
   mobileResize.addEventListener('touchstart', e => {
@@ -1475,9 +1510,8 @@ async function init() {
 
   document.addEventListener('touchmove', e => {
     if (!touchDragging) return;
-    const dy   = touchStartY - e.touches[0].clientY;   // drag up = increase height
-    const newH = Math.min(window.innerHeight * 0.78,
-                   Math.max(48, touchStartH + dy));
+    const dy   = touchStartY - e.touches[0].clientY;
+    const newH = Math.min(window.innerHeight * 0.78, Math.max(48, touchStartH + dy));
     sidebar.style.height = newH + 'px';
     if (mobileCollapsed && newH > 60) {
       mobileCollapsed = false;
@@ -1490,13 +1524,7 @@ async function init() {
 
   document.addEventListener('touchend', () => { touchDragging = false; });
 
-  // Initial position
-  positionDockBtn();
-  // Re-position after fonts/layout settle
-  window.addEventListener('resize', () => {
-    positionDockBtn();
-    if (map) map.invalidateSize();
-  });
+  window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 })();
 
 window.addEventListener('load', init);
