@@ -657,8 +657,3 @@ async function init() {
 })();
 
 window.addEventListener('load', init);
-
-// wherever you do:  sidebar.classList.toggle('collapsed')
-// add this right after:
-document.getElementById('mobile-dock-btn').style.bottom =
-    sidebar.classList.contains('collapsed') ? '88px' : 'calc(44vh + 8px)';
