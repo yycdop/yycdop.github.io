@@ -562,7 +562,7 @@ input[type="range"]::-webkit-slider-thumb {
     /* Vertical stack */
     .app {
         flex-direction: column;
-        height: calc(100vh - 44px);
+        height: calc(100dvh - 44px);
     }
 
     /* Hide desktop-only elements */
@@ -586,7 +586,7 @@ input[type="range"]::-webkit-slider-thumb {
     /* Button floats inside the map, near the bottom with breathing room */
     .mobile-dock-btn {
         position: absolute;
-        bottom: 2vh;
+        bottom: max(2vh, calc(env(safe-area-inset-bottom) + 8px));
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000; /* above leaflet tiles */

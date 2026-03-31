@@ -13,25 +13,25 @@ async function loadData() {
     'HTTP ' + response.status + ' fetching gnss_monitor_live.data — ' +
     'make sure gnss_monitor_live.data is in the same directory as this HTML file.');
 
-  const contentLength = response.headers.get('Content-Length');
-  const dlTotal = contentLength ? parseInt(contentLength, 10) : 0;
-  const dlReader = response.body.getReader();
-  const dlChunks = [];
-  let dlReceived = 0;
-  while (true) {
-    const { done, value } = await dlReader.read();
-    if (done) break;
-    dlChunks.push(value);
-    dlReceived += value.length;
-    if (dlTotal > 0) {
-      const pct = Math.round(dlReceived / dlTotal * 100);
-      status('Downloading... ' + pct + '% (' +
-        (dlReceived / 1048576).toFixed(1) + ' MB)');
-    } else {
-      status('Downloading... ' +
-        (dlReceived / 1048576).toFixed(1) + ' MB received');
+    const contentLength = response.headers.get('Content-Length');
+    const dlTotal = contentLength ? parseInt(contentLength, 10) : 0;
+    const dlReader = response.body.getReader();
+    const dlChunks = [];
+    let dlReceived = 0;
+    while (true) {
+        const { done, value } = await dlReader.read();
+        if (done) break;
+        dlChunks.push(value);
+        dlReceived += value.length;
+        if (dlTotal > 0) {
+            const pct = Math.min(100, Math.round(dlReceived / dlTotal * 100));  // ← only change
+            status('Rendering Map... ' + pct + '% (' +
+                (dlReceived / 1048576).toFixed(1) + ' MB)');
+        } else {
+            status('Rendering Map... ' +
+                (dlReceived / 1048576).toFixed(1) + ' MB received');
+        }
     }
-  }
 
   // Reassemble compressed bytes
   const compSize = dlChunks.reduce((s, c) => s + c.length, 0);
