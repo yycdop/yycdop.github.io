@@ -585,7 +585,7 @@ input[type="range"]::-webkit-slider-thumb {
     /* Button floats inside the map, near the bottom with breathing room */
     .mobile-dock-btn {
         position: absolute;
-        bottom: 10vh; /* 10% of viewport height — keeps it off the very edge */
+        bottom: 2vh;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000; /* above leaflet tiles */
