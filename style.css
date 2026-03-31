@@ -166,58 +166,78 @@ header {
 /* =====================================================================
    DESKTOP RESIZE HANDLE + DOCK BUTTON
    ===================================================================== */
-/* The resize handle is a thin flex child between sidebar and map.
-   The dock button lives inside it so it is always at the divider seam
-   and never obscured by the Leaflet map canvas.
-   isolation:isolate on .app ensures z-index works correctly. */
+/* The resize-handle is z-index:200 within .app's isolated stacking context,
+   which beats .map-container's z-index:20 — so dock-btn is always on top. */
 .resize-handle {
   width: 20px;
   flex-shrink: 0;
   position: relative;
-  z-index: 200;        /* above Leaflet tiles inside the isolated stacking context */
+  z-index: 200;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   cursor: col-resize;
-  background: transparent;
-}
-/* Thin highlight line shown while dragging */
-.resize-handle::before {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  left: 50%; transform: translateX(-50%);
-  width: 2px;
-  background: transparent;
-  pointer-events: none;
+  /* Themed dark navy strip — visible, intentional, fits the UI */
+  background: linear-gradient(to right, #0b1926 0%, #0e2038 50%, #0b1926 100%);
+  border-left:  1px solid var(--border);
+  border-right: 1px solid #0a3d5c;
   transition: background 0.15s;
 }
-.resize-handle:hover::before,
-.resize-handle.dragging::before { background: var(--accent); opacity: 0.4; }
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: linear-gradient(to right, #0d1f32 0%, #112644 50%, #0d1f32 100%);
+  border-right-color: var(--accent);
+}
+
+/* Grip dots — three vertically stacked dots to signal draggability */
+.resize-handle::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 36px;
+  background-image: radial-gradient(circle, var(--text-dim) 1.5px, transparent 1.5px);
+  background-size: 4px 8px;
+  background-repeat: repeat-y;
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.resize-handle:hover::after,
+.resize-handle.dragging::after { opacity: 0.85; }
+
+/* Remove the old ::before line — grip dots replace it */
+.resize-handle::before { display: none; }
 
 .dock-btn {
   position: absolute;
   top: 50%;
-  left: 0;
-  transform: translateY(-50%);  /* X translation removed — overflow:hidden on .map-container would clip it */
-  z-index: 2000;          /* beats sidebar (10), resize-handle (200), and Leaflet overlays (1000) */
+  /* right:-10px centres the 20px button exactly on the seam
+     between the resize-handle and the map, overlapping into the map */
+  right: -10px;
+  left: auto;
+  transform: translateY(-50%);
+  z-index: 10;              /* within resize-handle's own stacking context */
   width: 20px;
   height: 52px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0 6px 6px 0;   /* flat left edge, rounded right — hugs the seam */
   color: var(--accent);
   font-size: 11px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
   font-family: var(--font-mono);
   line-height: 1;
-  pointer-events: all;
 }
-.dock-btn:hover { background: var(--panel); border-color: var(--accent); }
+.dock-btn:hover {
+  background: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.25);
+}
 
 /* =====================================================================
    METRIC BUTTONS
@@ -425,7 +445,6 @@ input[type="range"]::-webkit-slider-thumb {
   min-width: 0;
   position: relative;
   overflow: hidden;
-  z-index: 20;            /* above sidebar (10) so dock-btn is never covered */
 }
 
 #map {

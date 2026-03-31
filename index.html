@@ -182,13 +182,13 @@
 
     </div><!-- /sidebar -->
 
-  <!-- Desktop resize handle — drag zone only, dock button now lives in map-container -->
-  <div class="resize-handle" id="resize-handle"></div>
+  <!-- Desktop resize handle — dock button lives here so it always paints above the map -->
+  <div class="resize-handle" id="resize-handle">
+    <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
+  </div>
 
   <!-- MAP -->
   <div class="map-container">
-      <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
-
       <div id="loading-overlay">
           <div class="loading-title">Initializing GNSS Monitor</div>
           <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
