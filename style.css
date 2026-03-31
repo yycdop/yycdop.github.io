@@ -22,6 +22,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -562,6 +567,7 @@ input[type="range"]::-webkit-slider-thumb {
     /* Vertical stack */
     .app {
         flex-direction: column;
+        height: calc(100vh - 44px); /* Fallback for older IOS */
         height: calc(100dvh - 44px);
     }
 
@@ -602,6 +608,7 @@ input[type="range"]::-webkit-slider-thumb {
         font-size: 11px;
         letter-spacing: 2px;
         cursor: pointer;
+        -webkit-backdrop-filter: blur(8px);
         backdrop-filter: blur(8px);
         box-shadow: 0 0 16px rgba(0, 212, 255, 0.2);
         transition: border-color 0.2s, box-shadow 0.2s, bottom 0.3s ease-in-out;
@@ -656,6 +663,7 @@ input[type="range"]::-webkit-slider-thumb {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
         transition: opacity 0.2s;
     }
 
