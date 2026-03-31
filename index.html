@@ -7,15 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-// ── Panel dock/collapse ──────────────────────────────────────────────────────
-function togglePanel() {
-  document.getElementById('app').classList.toggle('panel-collapsed');
-  // Let Leaflet know the map size changed
-  setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); }, 320);
-}
-
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #070b10;
@@ -111,20 +103,74 @@ function togglePanel() {
 
   /* === LAYOUT === */
   .app {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    grid-template-rows: 1fr;
+    display: flex;
+    flex-direction: row;
     height: calc(100vh - 68px);
+    position: relative;
+    overflow: hidden;
   }
 
   /* === SIDEBAR === */
   .sidebar {
+    width: 320px;
+    min-width: 180px;
+    max-width: 520px;
+    flex-shrink: 0;
     background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    transition: width 0.25s ease, min-width 0.25s ease;
+    z-index: 10;
+  }
+  .sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    border-right: none;
     overflow: hidden;
   }
+
+  /* === DESKTOP RESIZE HANDLE === */
+  .resize-handle {
+    width: 5px;
+    flex-shrink: 0;
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    z-index: 20;
+    transition: background 0.15s;
+  }
+  .resize-handle:hover,
+  .resize-handle.dragging { background: var(--accent); opacity: 0.5; }
+
+  /* === DESKTOP DOCK BUTTON === */
+  .dock-btn {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    z-index: 30;
+    width: 20px;
+    height: 52px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    color: var(--accent);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, left 0.25s ease;
+    font-family: var(--font-mono);
+    line-height: 1;
+  }
+  .dock-btn:hover { background: var(--panel); border-color: var(--accent); }
+  /* dock button rides on the right edge of sidebar via JS */
 
   .sidebar-section {
     padding: 18px 20px;
@@ -475,148 +521,120 @@ function togglePanel() {
   /* Leaflet canvas layer */
   .leaflet-overlay-pane canvas { pointer-events: none; }
 
+  /* === MAP CONTAINER takes remaining flex space === */
+  .map-container {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
   /* ============================================================
-     DOCKABLE PANEL — DESKTOP (left side) + MOBILE (bottom)
+     MOBILE  (≤ 600px)
      ============================================================ */
-
-  /* Dock toggle button — shared */
-  .dock-toggle {
-    position: absolute;
-    z-index: 600;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--accent);
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
-    font-family: var(--font-mono);
-    line-height: 1;
-  }
-  .dock-toggle:hover { background: var(--panel); border-color: var(--accent); }
-
-  /* ── DESKTOP ── */
-  @media (min-width: 601px) {
-    /* slim compact header on desktop — unchanged */
-
-    .app {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      grid-template-rows: 1fr;
-      height: calc(100vh - 68px);
-      transition: grid-template-columns 0.3s ease;
-    }
-    .app.panel-collapsed {
-      grid-template-columns: 0px 1fr;
-    }
-    .app.panel-collapsed .sidebar {
-      overflow: hidden;
-      min-width: 0;
-      width: 0;
-      border-right: none;
-    }
-
-    .dock-toggle {
-      top: 50%;
-      transform: translateY(-50%);
-      left: 320px;
-      width: 18px;
-      height: 48px;
-      border-radius: 0 6px 6px 0;
-      border-left: none;
-      transition: left 0.3s ease;
-    }
-    .app.panel-collapsed .dock-toggle {
-      left: 0px;
-    }
-    .dock-toggle-icon::before { content: '◀'; }
-    .app.panel-collapsed .dock-toggle-icon::before { content: '▶'; }
-  }
-
-  /* ── MOBILE ── */
   @media (max-width: 600px) {
-    /* compact header */
+    /* Compact header */
     header {
-      padding: 8px 14px;
-      flex-wrap: wrap;
-      gap: 4px;
+      padding: 7px 12px;
+      gap: 6px;
     }
-    .header-title h1 {
-      font-size: 13px;
-      letter-spacing: 1px;
-    }
-    .header-title p {
-      display: none;
-    }
-    .logo-mark {
-      width: 28px; height: 28px;
-      font-size: 13px;
-    }
-    .header-status {
-      gap: 10px;
-    }
-    .status-item { display: none; }
-    .live-dot { font-size: 10px; }
+    .logo-mark { width: 26px; height: 26px; font-size: 12px; }
+    .header-title h1 { font-size: 13px; letter-spacing: 1px; }
+    .header-title p  { display: none; }
+    .status-item     { display: none; }
+    .live-dot        { font-size: 10px; gap: 5px; }
+    .dot             { width: 6px; height: 6px; }
 
-    /* stack: map fills screen, panel slides up from bottom */
+    /* Stack vertically: map fills space, panel slides from bottom */
     .app {
-      display: flex;
       flex-direction: column;
-      height: calc(100vh - 48px);
-      position: relative;
+      height: calc(100vh - 44px);
     }
 
+    /* Hide desktop resize + dock */
+    .resize-handle { display: none; }
+    .dock-btn      { display: none; }
+
+    /* Map sits above */
     .map-container {
       flex: 1;
       min-height: 0;
+      order: 1;
     }
 
+    /* Bottom panel */
     .sidebar {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 55vh;
-      max-height: 75vh;
+      order: 2;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none;
+      height: 44vh;
+      min-height: 48px;
+      max-height: 78vh;
       border-right: none;
       border-top: 2px solid var(--border);
       border-radius: 14px 14px 0 0;
-      z-index: 500;
       overflow-y: auto;
-      transform: translateY(0);
-      transition: transform 0.3s ease;
-      /* drag handle area */
-      padding-top: 20px;
+      overflow-x: hidden;
+      flex-shrink: 0;
+      transition: height 0.28s ease;
+      position: relative;
     }
+    .sidebar.collapsed {
+      height: 48px !important;
+      min-height: 48px;
+      overflow: hidden;
+    }
+
+    /* Drag handle bar at top of mobile panel */
     .sidebar::before {
       content: '';
-      position: absolute;
-      top: 8px; left: 50%;
-      transform: translateX(-50%);
-      width: 36px; height: 4px;
+      display: block;
+      width: 38px; height: 4px;
       background: var(--border);
       border-radius: 2px;
-    }
-    .app.panel-collapsed .sidebar {
-      transform: translateY(calc(100% - 36px));
+      margin: 10px auto 0;
+      flex-shrink: 0;
     }
 
-    /* dock toggle sits on top of sidebar as a small pill */
-    .dock-toggle {
-      top: -1px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 22px;
-      border-radius: 10px 10px 0 0;
-      border-bottom: none;
-      font-size: 11px;
+    /* Mobile dock button */
+    .mobile-dock-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: calc(100% - 32px);
+      margin: 6px 16px 0;
+      padding: 5px 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
     }
-    .dock-toggle-icon::before { content: '▼'; }
-    .app.panel-collapsed .dock-toggle-icon::before { content: '▲'; }
+    .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Mobile resize: touch-drag on the top border of panel */
+    .mobile-resize-handle {
+      display: block;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 22px;
+      cursor: ns-resize;
+      z-index: 40;
+    }
   }
 
-  </style>
+  /* Hide mobile-only elements on desktop */
+  @media (min-width: 601px) {
+    .mobile-dock-btn       { display: none; }
+    .mobile-resize-handle  { display: none; }
+  }
+</style>
 </head>
 <body>
 
@@ -649,11 +667,15 @@ function togglePanel() {
 </header>
 
 <div class="app" id="app">
-  <button class="dock-toggle" id="dock-toggle" onclick="togglePanel()" title="Toggle panel">
-    <span class="dock-toggle-icon"></span>
-  </button>
+  <!-- DESKTOP DOCK BUTTON (rides on right edge of sidebar, positioned by JS) -->
+  <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
+
   <!-- SIDEBAR -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
+    <!-- Mobile: dock button + resize handle (hidden on desktop via CSS) -->
+    <div class="mobile-resize-handle" id="mobile-resize-handle"></div>
+    <button class="mobile-dock-btn" id="mobile-dock-btn">▼ HIDE PANEL</button>
+
     <!-- Metric selector -->
     <div class="sidebar-section">
       <div class="section-title">Display Metric</div>
@@ -782,6 +804,9 @@ function togglePanel() {
     </div>
   </div>
 
+  <!-- DESKTOP RESIZE HANDLE -->
+  <div class="resize-handle" id="resize-handle"></div>
+
   <!-- MAP -->
   <div class="map-container">
     <div id="loading-overlay">
@@ -814,8 +839,7 @@ async function loadData() {
   const response = await fetch('gnss_monitor_live.data');
   if (!response.ok) throw new Error(
     'HTTP ' + response.status + ' fetching gnss_monitor_live.data — ' +
-    'make sure both files are in the same folder and you opened via ' +
-    'http://localhost:8000 (not file://)');
+    'make sure gnss_monitor_live.data is in the same directory as this HTML file.');
 
   const contentLength = response.headers.get('Content-Length');
   const dlTotal = contentLength ? parseInt(contentLength, 10) : 0;
@@ -981,7 +1005,7 @@ let _pixels32  = null;
 // Building overlay
 let _bldOffscreen = null;
 let _bldRendered  = false;
-const BUILDING_ARGB = (160 << 24) | (139 << 16) | (61 << 8) | 72;  // dark slate blue #483D8B
+const BUILDING_ARGB = (160 << 24) | (153 << 16) | (153 << 8) | 0;  // dark slate blue #483D8B
 
 // 32-bit ARGB colour tables (little-endian 0xAABBGGRR) — one write per pixel
 const DOP_ARGB   = new Uint32Array(256);
@@ -1341,6 +1365,139 @@ async function init() {
   await new Promise(r => setTimeout(r, 800));
   document.getElementById('loading-overlay').classList.add('hidden');
 }
+
+// =====================================================================
+// PANEL — DESKTOP RESIZE + DOCK  /  MOBILE RESIZE + DOCK
+// =====================================================================
+(function setupPanel() {
+  const sidebar     = document.getElementById('sidebar');
+  const resizeHandle= document.getElementById('resize-handle');
+  const dockBtn     = document.getElementById('dock-btn');
+  const mobileDock  = document.getElementById('mobile-dock-btn');
+  const mobileResize= document.getElementById('mobile-resize-handle');
+  const app         = document.getElementById('app');
+
+  let collapsed = false;
+  let lastWidth = 320;   // desktop: remember width before collapse
+
+  // ── Position desktop dock button on the right edge of sidebar ──────
+  function positionDockBtn() {
+    const w = collapsed ? 0 : sidebar.offsetWidth;
+    dockBtn.style.left = w + 'px';
+    dockBtn.textContent = collapsed ? '▶' : '◀';
+  }
+
+  // ── Desktop: toggle collapse ────────────────────────────────────────
+  function desktopToggle() {
+    if (!collapsed) {
+      lastWidth = sidebar.offsetWidth;
+      collapsed = true;
+      sidebar.style.width    = '0';
+      sidebar.style.minWidth = '0';
+      sidebar.classList.add('collapsed');
+    } else {
+      collapsed = false;
+      sidebar.style.width    = lastWidth + 'px';
+      sidebar.style.minWidth = '180px';
+      sidebar.classList.remove('collapsed');
+    }
+    positionDockBtn();
+    setTimeout(() => { if (map) map.invalidateSize(); }, 280);
+  }
+  dockBtn.addEventListener('click', desktopToggle);
+
+  // ── Desktop: drag to resize ─────────────────────────────────────────
+  let dragging = false;
+  let dragStartX, dragStartW;
+
+  resizeHandle.addEventListener('mousedown', e => {
+    dragging    = true;
+    dragStartX  = e.clientX;
+    dragStartW  = sidebar.offsetWidth;
+    resizeHandle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const newW = Math.min(520, Math.max(180, dragStartW + e.clientX - dragStartX));
+    sidebar.style.width = newW + 'px';
+    lastWidth = newW;
+    if (collapsed) {
+      collapsed = false;
+      sidebar.classList.remove('collapsed');
+      sidebar.style.minWidth = '180px';
+    }
+    positionDockBtn();
+    if (map) map.invalidateSize();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    resizeHandle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // ── Mobile: toggle collapse ─────────────────────────────────────────
+  let mobileCollapsed = false;
+  let lastMobileH = null;   // saved height before collapse
+
+  function mobileToggle() {
+    if (!mobileCollapsed) {
+      lastMobileH = sidebar.style.height || '44vh';
+      mobileCollapsed = true;
+      sidebar.classList.add('collapsed');
+      mobileDock.innerHTML = '▲ SHOW PANEL';
+    } else {
+      mobileCollapsed = false;
+      sidebar.classList.remove('collapsed');
+      if (lastMobileH) sidebar.style.height = lastMobileH;
+      mobileDock.innerHTML = '▼ HIDE PANEL';
+    }
+    setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+  }
+  mobileDock.addEventListener('click', mobileToggle);
+
+  // ── Mobile: touch-drag top edge to resize ───────────────────────────
+  let touchDragging  = false;
+  let touchStartY, touchStartH;
+
+  mobileResize.addEventListener('touchstart', e => {
+    touchDragging = true;
+    touchStartY   = e.touches[0].clientY;
+    touchStartH   = sidebar.offsetHeight;
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!touchDragging) return;
+    const dy   = touchStartY - e.touches[0].clientY;   // drag up = increase height
+    const newH = Math.min(window.innerHeight * 0.78,
+                   Math.max(48, touchStartH + dy));
+    sidebar.style.height = newH + 'px';
+    if (mobileCollapsed && newH > 60) {
+      mobileCollapsed = false;
+      sidebar.classList.remove('collapsed');
+      mobileDock.innerHTML = '▼ HIDE PANEL';
+    }
+    if (map) map.invalidateSize();
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => { touchDragging = false; });
+
+  // Initial position
+  positionDockBtn();
+  // Re-position after fonts/layout settle
+  window.addEventListener('resize', () => {
+    positionDockBtn();
+    if (map) map.invalidateSize();
+  });
+})();
 
 window.addEventListener('load', init);
 </script>
