@@ -7,7 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+// ── Panel dock/collapse ──────────────────────────────────────────────────────
+function togglePanel() {
+  document.getElementById('app').classList.toggle('panel-collapsed');
+  // Let Leaflet know the map size changed
+  setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); }, 320);
+}
+
+</script>
 <style>
   :root {
     --bg: #070b10;
@@ -466,7 +474,149 @@
 
   /* Leaflet canvas layer */
   .leaflet-overlay-pane canvas { pointer-events: none; }
-</style>
+
+  /* ============================================================
+     DOCKABLE PANEL — DESKTOP (left side) + MOBILE (bottom)
+     ============================================================ */
+
+  /* Dock toggle button — shared */
+  .dock-toggle {
+    position: absolute;
+    z-index: 600;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: var(--font-mono);
+    line-height: 1;
+  }
+  .dock-toggle:hover { background: var(--panel); border-color: var(--accent); }
+
+  /* ── DESKTOP ── */
+  @media (min-width: 601px) {
+    /* slim compact header on desktop — unchanged */
+
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: 1fr;
+      height: calc(100vh - 68px);
+      transition: grid-template-columns 0.3s ease;
+    }
+    .app.panel-collapsed {
+      grid-template-columns: 0px 1fr;
+    }
+    .app.panel-collapsed .sidebar {
+      overflow: hidden;
+      min-width: 0;
+      width: 0;
+      border-right: none;
+    }
+
+    .dock-toggle {
+      top: 50%;
+      transform: translateY(-50%);
+      left: 320px;
+      width: 18px;
+      height: 48px;
+      border-radius: 0 6px 6px 0;
+      border-left: none;
+      transition: left 0.3s ease;
+    }
+    .app.panel-collapsed .dock-toggle {
+      left: 0px;
+    }
+    .dock-toggle-icon::before { content: '◀'; }
+    .app.panel-collapsed .dock-toggle-icon::before { content: '▶'; }
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    /* compact header */
+    header {
+      padding: 8px 14px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .header-title h1 {
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+    .header-title p {
+      display: none;
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      font-size: 13px;
+    }
+    .header-status {
+      gap: 10px;
+    }
+    .status-item { display: none; }
+    .live-dot { font-size: 10px; }
+
+    /* stack: map fills screen, panel slides up from bottom */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 48px);
+      position: relative;
+    }
+
+    .map-container {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 55vh;
+      max-height: 75vh;
+      border-right: none;
+      border-top: 2px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      z-index: 500;
+      overflow-y: auto;
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+      /* drag handle area */
+      padding-top: 20px;
+    }
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+    .app.panel-collapsed .sidebar {
+      transform: translateY(calc(100% - 36px));
+    }
+
+    /* dock toggle sits on top of sidebar as a small pill */
+    .dock-toggle {
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 22px;
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+      font-size: 11px;
+    }
+    .dock-toggle-icon::before { content: '▼'; }
+    .app.panel-collapsed .dock-toggle-icon::before { content: '▲'; }
+  }
+
+  </style>
 </head>
 <body>
 
@@ -498,7 +648,10 @@
   </div>
 </header>
 
-<div class="app">
+<div class="app" id="app">
+  <button class="dock-toggle" id="dock-toggle" onclick="togglePanel()" title="Toggle panel">
+    <span class="dock-toggle-icon"></span>
+  </button>
   <!-- SIDEBAR -->
   <div class="sidebar">
     <!-- Metric selector -->
@@ -661,7 +814,8 @@ async function loadData() {
   const response = await fetch('gnss_monitor_live.data');
   if (!response.ok) throw new Error(
     'HTTP ' + response.status + ' fetching gnss_monitor_live.data — ' +
-    'make sure gnss_monitor_live.data is in the same directory as this HTML file.');
+    'make sure both files are in the same folder and you opened via ' +
+    'http://localhost:8000 (not file://)');
 
   const contentLength = response.headers.get('Content-Length');
   const dlTotal = contentLength ? parseInt(contentLength, 10) : 0;
@@ -827,7 +981,7 @@ let _pixels32  = null;
 // Building overlay
 let _bldOffscreen = null;
 let _bldRendered  = false;
-const BUILDING_ARGB = (160 << 24) | (153 << 16) | (153 << 8) | 0;  // dark slate blue #483D8B
+const BUILDING_ARGB = (160 << 24) | (139 << 16) | (61 << 8) | 72;  // dark slate blue #483D8B
 
 // 32-bit ARGB colour tables (little-endian 0xAABBGGRR) — one write per pixel
 const DOP_ARGB   = new Uint32Array(256);
