@@ -442,8 +442,11 @@ function setupHover() {
     const { lat, lng } = e.latlng;
     if (lat < meta.lat_min || lat > meta.lat_max ||
         lng < meta.lon_min || lng > meta.lon_max) {
-      document.getElementById('point-info-empty').style.display = '';
-      document.getElementById('point-info-data').style.display  = 'none';
+      document.getElementById('pv-pdop').textContent  = 'N/A';
+      document.getElementById('pv-hdop').textContent  = 'N/A';
+      document.getElementById('pv-vdop').textContent  = 'N/A';
+      document.getElementById('pv-sats').textContent  = 'N/A';
+      document.getElementById('pv-coords').innerHTML  = 'Hover over the map<br>to inspect a location';
       return;
     }
 
@@ -460,8 +463,6 @@ function setupHover() {
     const sats  = epoch[base + 3];
     const noSig = vdop === 255;
 
-    document.getElementById('point-info-empty').style.display = 'none';
-    document.getElementById('point-info-data').style.display  = '';
     document.getElementById('pv-pdop').textContent = noSig ? 'N/A' : (pdop/10).toFixed(2);
     document.getElementById('pv-hdop').textContent = noSig ? 'N/A' : (hdop/10).toFixed(2);
     document.getElementById('pv-vdop').textContent = noSig ? 'N/A' : (vdop/10).toFixed(2);
