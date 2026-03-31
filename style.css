@@ -524,122 +524,165 @@ input[type="range"]::-webkit-slider-thumb {
    MOBILE  (≤ 600px)
    ===================================================================== */
 @media (max-width: 600px) {
-  /* Compact header */
-  header          { padding: 7px 12px; gap: 6px; }
-  .logo-mark      { width: 26px; height: 26px; font-size: 12px; }
-  .header-title h1 { font-size: 13px; letter-spacing: 1px; }
-  .header-title p  { display: none; }
-  .status-item     { display: none; }
-  .live-dot        { font-size: 10px; gap: 5px; }
-  .dot             { width: 6px; height: 6px; }
+    /* Compact header */
+    header {
+        padding: 7px 12px;
+        gap: 6px;
+    }
 
-  /* Vertical stack */
-  .app {
-    flex-direction: column;
-    height: calc(100vh - 44px);
-  }
+    .logo-mark {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+    }
 
-  /* Hide desktop-only elements */
-  .resize-handle { display: none; }
-  .dock-btn      { display: none; }
+    .header-title h1 {
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
 
-  /* Map on top */
-  .map-container { flex: 1; min-height: 0; order: 1; }
+    .header-title p {
+        display: none;
+    }
 
-  /* Sidebar becomes a bottom sheet.
-     overflow must stay visible on the outer wrapper so the absolutely-
-     positioned dock button is never clipped when collapsed. The inner
-     scroll area handles its own overflow instead (see .sidebar-scroll). */
-  .sidebar {
-    order: 3;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none;
-    height: 44vh;
-    min-height: 80px;     /* exactly the dock-button strip height */
-    max-height: 78vh;
-    border-right: none;
-    border-top: 2px solid var(--border);
-    border-radius: 14px 14px 0 0;
-    overflow: visible;    /* MUST be visible so dock-btn is never clipped */
-    flex-shrink: 0;
-    transition: height 0.28s ease;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Collapsed = shrink to just the dock-button strip */
-  .sidebar.collapsed {
-    height: 80px !important;
-  }
+    .status-item {
+        display: none;
+    }
 
-  /* Drag-handle pill at the very top of the sheet */
-  .sidebar::before {
-    content: '';
-    display: block;
-    width: 38px; height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin: 8px auto 0;
-    flex-shrink: 0;
-  }
+    .live-dot {
+        font-size: 10px;
+        gap: 5px;
+    }
 
-  /* Mobile dock button — absolutely pinned to top of sidebar so it is
-     ALWAYS visible and tappable, even when the sheet is collapsed.
-     overflow:visible on .sidebar means this is never clipped. */
-.mobile-dock-btn {
-    position: fixed;
-    bottom: calc(44vh + 8px); /* sits just above the sidebar sheet */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: calc(100% - 32px);
-    max-width: 400px;
-    padding: 8px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-dim);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s, bottom 0.28s ease;
-}
-  .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .dot {
+        width: 6px;
+        height: 6px;
+    }
 
-  /* Scrollable inner area — sits below the dock button and clips its own content */
-  .sidebar-scroll {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* hide this area when collapsed (the outer .sidebar stays at 52px) */
-    transition: opacity 0.2s;
-  }
-  .sidebar.collapsed .sidebar-scroll {
-    overflow: hidden;
-    opacity: 0;
-    pointer-events: none;
-  }
+    /* Vertical stack */
+    .app {
+        flex-direction: column;
+        height: calc(100vh - 44px);
+    }
 
-  /* Touch-drag zone at the very top of the sheet */
-  .mobile-resize-handle {
-    display: block;
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 22px;
-    cursor: ns-resize;
-    z-index: 40;
-    padding: 30px;
-  }
+    /* Hide desktop-only elements */
+    .resize-handle {
+        display: none;
+    }
+
+    .dock-btn {
+        display: none;
+    }
+
+    /* Map takes remaining space after sidebar */
+    .map-container {
+        flex: 1;
+        min-height: 0;
+        order: 1;
+        position: relative; /* anchor for the button */
+    }
+
+    /* Button floats inside the map, near the bottom with breathing room */
+    .mobile-dock-btn {
+        position: absolute;
+        bottom: 10vh; /* 10% of viewport height — keeps it off the very edge */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000; /* above leaflet tiles */
+        width: auto;
+        min-width: 160px;
+        padding: 9px 20px;
+        margin: 0;
+        background: rgba(13, 21, 32, 0.92);
+        border: 1px solid var(--accent);
+        border-radius: 20px; /* pill shape — feels native on mobile */
+        color: var(--accent);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 0 16px rgba(0, 212, 255, 0.2);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        flex-shrink: 0;
+    }
+
+        .mobile-dock-btn:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 24px rgba(0, 212, 255, 0.4);
+        }
+
+    /* Sidebar is a bottom sheet — sits below the map, never overlaps it */
+    .sidebar {
+        order: 2;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none;
+        height: 44vh;
+        min-height: 0;
+        max-height: 78vh;
+        border-right: none;
+        border-top: 2px solid var(--border);
+        border-radius: 14px 14px 0 0;
+        overflow: hidden;
+        flex-shrink: 0;
+        transition: height 0.28s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+        /* Collapsed = fully hidden, map takes all the space */
+        .sidebar.collapsed {
+            height: 0 !important;
+            border-top: none;
+        }
+
+        /* Drag pill */
+        .sidebar::before {
+            content: '';
+            display: block;
+            width: 38px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 8px auto 0;
+            flex-shrink: 0;
+        }
+
+    /* Inner scroll area */
+    .sidebar-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        transition: opacity 0.2s;
+    }
+
+    .sidebar.collapsed .sidebar-scroll {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Touch-drag zone */
+    .mobile-resize-handle {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 22px;
+        cursor: ns-resize;
+        z-index: 40;
+    }
 }
 
 /* Hide mobile-only elements on desktop */
 @media (min-width: 601px) {
-  .mobile-dock-btn      { display: none; }
-  .mobile-resize-handle { display: none; }
+    .mobile-dock-btn {
+        display: none;
+    }
+
+    .mobile-resize-handle {
+        display: none;
+    }
 }

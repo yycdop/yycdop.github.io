@@ -40,9 +40,6 @@
   </div>
 </header>
 
-<!-- Mobile only: Hide/show button --->
-<button class="mobile-dock-btn" id="mobile-dock-btn">▼ HIDE PANEL</button>
-
 <div class="app" id="app">
 
     
@@ -197,19 +194,23 @@
 
   <!-- MAP -->
   <div class="map-container">
-    <div id="loading-overlay">
-      <div class="loading-title">Initializing GNSS Monitor</div>
-      <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
-      <div class="loading-sub">Decompressing satellite data...</div>
-    </div>
+      <div id="loading-overlay">
+          <div class="loading-title">Initializing GNSS Monitor</div>
+          <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+          <div class="loading-sub">Decompressing satellite data...</div>
+      </div>
 
-    <div id="map"></div>
-    <div class="scan-line"></div>
+      <div id="map"></div>
+      <div class="scan-line"></div>
 
-    <div class="map-overlay-top">
-      <div class="overlay-tag">Calgary Downtown · <span>51.050°N, 114.070°W</span></div>
-      <div class="overlay-tag" id="overlay-metric">Metric: <span>PDOP</span></div>
-    </div>
+      <div class="map-overlay-top">
+          <div class="overlay-tag">Calgary Downtown · <span>51.050°N, 114.070°W</span></div>
+          <div class="overlay-tag" id="overlay-metric">Metric: <span>PDOP</span></div>
+      </div>
+
+      <!-- Mobile only: Hide/show button --->
+      <button class="mobile-dock-btn" id="mobile-dock-btn">▼ HIDE PANEL</button>
+
   </div><!-- /map-container -->
 
 </div><!-- /app -->
