@@ -212,14 +212,15 @@ header {
 .dock-btn {
   position: absolute;
   top: 50%;
-  /* right:-10px centres the 20px button exactly on the seam
-     between the resize-handle and the map, overlapping into the map */
-  right: -10px;
+  /* right:0 puts the button's right edge flush at the resize-handle/map seam.
+     The button sits on the resize-handle side, not overlapping into the map.
+     resize-handle z-index:200 ensures it always paints above map-container z-index:20. */
+  right: 0;
   left: auto;
   transform: translateY(-50%);
   z-index: 10;              /* within resize-handle's own stacking context */
-  width: 40px;
-  height: 80px;
+  width: 36px;
+  height: 52px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0 6px 6px 0;   /* flat left edge, rounded right — hugs the seam */
@@ -445,6 +446,7 @@ input[type="range"]::-webkit-slider-thumb {
   min-width: 0;
   position: relative;
   overflow: hidden;
+  z-index: 20;            /* explicit: sidebar(10) < map-container(20) < resize-handle(200) */
 }
 
 #map {
