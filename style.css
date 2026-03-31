@@ -570,7 +570,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
   /* Collapsed = shrink to just the dock-button strip */
   .sidebar.collapsed {
-    height: 52px !important;
+    height: 100px !important;
   }
 
   /* Drag-handle pill at the very top of the sheet */
