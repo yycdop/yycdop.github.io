@@ -134,47 +134,45 @@
   }
 
   /* === DESKTOP RESIZE HANDLE === */
-  /* The resize handle is a flex child between sidebar and map.
-     It also hosts the dock button so the button is always at
-     the divider and never obscured by the map canvas. */
+  /* Zero-width — takes no space. Drag zone is the ::before pseudo-element.
+     The dock button is a sibling of sidebar+map, positioned by JS. */
   .resize-handle {
-    width: 20px;          /* wide enough to hold dock-btn */
+    width: 0;
     flex-shrink: 0;
     position: relative;
-    z-index: 50;          /* above Leaflet (z ~400) via stacking context */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    z-index: 50;
     cursor: col-resize;
-    background: transparent;
-    transition: background 0.15s;
   }
-  /* thin visible line in the centre */
   .resize-handle::before {
     content: '';
     position: absolute;
     top: 0; bottom: 0;
-    left: 50%; transform: translateX(-50%);
-    width: 3px;
+    left: -4px; width: 8px;
     background: transparent;
-    transition: background 0.15s;
-    pointer-events: none;
+    cursor: col-resize;
+    z-index: 52;
   }
-  .resize-handle:hover::before,
-  .resize-handle.dragging::before { background: var(--accent); opacity: 0.5; }
+  .resize-handle.dragging::before { background: rgba(0,212,255,0.15); }
 
-  /* === DESKTOP DOCK BUTTON — lives inside resize-handle === */
+  /* === DESKTOP DOCK BUTTON ===
+     Direct child of .app, absolutely positioned so it always floats
+     over the left edge of the map. JS sets its 'left' value to match
+     the sidebar width. z-index 200 beats Leaflet tiles (z ~100-200)
+     but we also set isolation:isolate on .app to create a new stacking
+     context so Leaflet's internal z-indexes don't bleed through. */
+  .app { isolation: isolate; }
+
   .dock-btn {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 51;
+    transform: translateY(-50%);
+    z-index: 200;
     width: 20px;
     height: 52px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
     color: var(--accent);
     font-size: 11px;
     cursor: pointer;
@@ -836,10 +834,11 @@
     </div>
   </div>
 
-  <!-- DESKTOP RESIZE HANDLE — dock button lives here so it's always at the divider, never covered by map -->
-  <div class="resize-handle" id="resize-handle">
-    <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
-  </div>
+  <!-- DESKTOP RESIZE HANDLE (zero-width drag zone) -->
+  <div class="resize-handle" id="resize-handle"></div>
+
+  <!-- DESKTOP DOCK BUTTON — direct child of .app, JS positions left edge -->
+  <button class="dock-btn" id="dock-btn" title="Toggle panel">◀</button>
 
   <!-- MAP -->
   <div class="map-container">
@@ -1413,6 +1412,12 @@ async function init() {
   let collapsed  = false;
   let lastWidth  = 320;
 
+  // ── Position dock button at sidebar's right edge ────────────────────
+  function positionDockBtn() {
+    dockBtn.style.left = (collapsed ? 0 : sidebar.offsetWidth) + 'px';
+    dockBtn.textContent = collapsed ? '▶' : '◀';
+  }
+
   // ── Desktop: update arrow label ─────────────────────────────────────
   function updateArrow() {
     dockBtn.textContent = collapsed ? '▶' : '◀';
@@ -1433,6 +1438,7 @@ async function init() {
       sidebar.classList.remove('collapsed');
     }
     updateArrow();
+    positionDockBtn();
     setTimeout(() => { if (map) map.invalidateSize(); }, 280);
   }
   dockBtn.addEventListener('click', desktopToggle);
@@ -1464,6 +1470,7 @@ async function init() {
       sidebar.style.minWidth = '180px';
       updateArrow();
     }
+    positionDockBtn();
     if (map) map.invalidateSize();
   });
 
@@ -1524,7 +1531,13 @@ async function init() {
 
   document.addEventListener('touchend', () => { touchDragging = false; });
 
-  window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+  window.addEventListener('resize', () => {
+    positionDockBtn();
+    if (map) map.invalidateSize();
+  });
+
+  // Set initial position once layout is settled
+  positionDockBtn();
 })();
 
 window.addEventListener('load', init);
