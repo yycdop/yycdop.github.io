@@ -49,6 +49,9 @@
     <div class="mobile-resize-handle" id="mobile-resize-handle"></div>
     <button class="mobile-dock-btn" id="mobile-dock-btn">▼ HIDE PANEL</button>
 
+    <!-- Scrollable content (on mobile this is the collapsible area) -->
+    <div class="sidebar-scroll">
+
     <!-- Metric selector -->
     <div class="sidebar-section">
       <div class="section-title">Display Metric</div>
@@ -73,7 +76,7 @@
                 onclick="setMetric('blocked')"
                 style="grid-column:span 2;border-color:#ff4444;color:#ff4444;">
           <span class="btn-label">⛔ BLOCKED</span>
-          <span class="btn-sub">Fully Obstructed Locations</span>
+          <span class="btn-sub">No Signal Locations</span>
         </button>
       </div>
     </div>
@@ -178,6 +181,8 @@
         </div>
       </div>
     </div>
+
+    </div><!-- /sidebar-scroll -->
 
   </div><!-- /sidebar -->
 
