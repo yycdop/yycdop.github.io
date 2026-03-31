@@ -588,20 +588,18 @@ input[type="range"]::-webkit-slider-thumb {
      ALWAYS visible and tappable, even when the sheet is collapsed.
      overflow:visible on .sidebar means this is never clipped. */
 .mobile-dock-btn {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    order: 2;
-    z-index: 50;
-    flex-shrink: 0;
+    position: fixed;
+    bottom: calc(44vh + 8px); /* sits just above the sidebar sheet */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: calc(100% - 32px);
+    max-width: 400px;
+    padding: 8px 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: calc(100% - 32px);
-    margin: 6px 16px;
-    padding: 8px 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -610,7 +608,7 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 10px;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color 0.2s, color 0.2s, bottom 0.28s ease;
 }
   .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
 
