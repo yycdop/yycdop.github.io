@@ -585,8 +585,8 @@ input[type="range"]::-webkit-slider-thumb {
 
     /* Button floats inside the map, near the bottom with breathing room */
     .mobile-dock-btn {
-        position: absolute;
-        bottom: max(2vh, calc(env(safe-area-inset-bottom) + 8px));
+        position: fixed;
+        bottom: calc(44vh + 2vh);
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000; /* above leaflet tiles */
@@ -604,7 +604,7 @@ input[type="range"]::-webkit-slider-thumb {
         cursor: pointer;
         backdrop-filter: blur(8px);
         box-shadow: 0 0 16px rgba(0, 212, 255, 0.2);
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s, bottom 0.3s ease-in-out;
         flex-shrink: 0;
     }
 

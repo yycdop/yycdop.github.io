@@ -543,6 +543,7 @@ async function init() {
   const resizeHandle = document.getElementById('resize-handle');
   const dockBtn      = document.getElementById('dock-btn');
   const mobileDock   = document.getElementById('mobile-dock-btn');
+    if (window.innerWidth <= 600) mobileDock.style.bottom = 'calc(44vh + 2vh)';
   const mobileResize = document.getElementById('mobile-resize-handle');
 
   let collapsed = false;
@@ -610,20 +611,22 @@ async function init() {
   let mobileCollapsed = false;
   let lastMobileH     = null;
 
-  function mobileToggle() {
+function mobileToggle() {
     if (!mobileCollapsed) {
-      lastMobileH     = sidebar.style.height || '44vh';
-      mobileCollapsed = true;
-      sidebar.classList.add('collapsed');
-      mobileDock.innerHTML = '▲ SHOW PANEL';
+        lastMobileH = sidebar.style.height || '44vh';
+        mobileCollapsed = true;
+        sidebar.classList.add('collapsed');
+        mobileDock.innerHTML = '▲ SHOW PANEL';
+        mobileDock.style.bottom = '2vh';              // panel hidden — sit near bottom
     } else {
-      mobileCollapsed = false;
-      sidebar.classList.remove('collapsed');
-      if (lastMobileH) sidebar.style.height = lastMobileH;
-      mobileDock.innerHTML = '▼ HIDE PANEL';
+        mobileCollapsed = false;
+        sidebar.classList.remove('collapsed');
+        if (lastMobileH) sidebar.style.height = lastMobileH;
+        mobileDock.innerHTML = '▼ HIDE PANEL';
+        mobileDock.style.bottom = 'calc(' + (lastMobileH || '44vh') + ' + 2vh)'; // above panel
     }
-    setTimeout(() => { if (map) map.invalidateSize(); }, 300);
-  }
+    setTimeout(() => { if (map) map.invalidateSize(); }, 320);
+}
   mobileDock.addEventListener('click', mobileToggle);
 
   // ── Mobile: touch-drag top edge to resize ───────────────────────────
@@ -642,6 +645,7 @@ async function init() {
     const dy   = touchStartY - e.touches[0].clientY;
     const newH = Math.min(window.innerHeight * 0.78, Math.max(48, touchStartH + dy));
     sidebar.style.height = newH + 'px';
+    mobileDock.style.bottom = 'calc(' + newH + 'px + 2vh)';
     if (mobileCollapsed && newH > 60) {
       mobileCollapsed      = false;
       sidebar.classList.remove('collapsed');
