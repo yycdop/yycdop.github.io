@@ -607,6 +607,7 @@ input[type="range"]::-webkit-slider-thumb {
     letter-spacing: 1px;
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
+    overflow: visible;
   }
   .mobile-dock-btn:hover { border-color: var(--accent); color: var(--accent); }
 
