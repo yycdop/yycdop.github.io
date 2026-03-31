@@ -215,7 +215,7 @@ header {
   /* right:0 puts the button's right edge flush at the resize-handle/map seam.
      The button sits on the resize-handle side, not overlapping into the map.
      resize-handle z-index:200 ensures it always paints above map-container z-index:20. */
-  right: -16px;
+  right: -20px;
   left: auto;
   transform: translateY(-50%);
   z-index: 10;              /* within resize-handle's own stacking context */
